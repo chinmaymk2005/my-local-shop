@@ -25,6 +25,8 @@ exports.register = async (req, res, next) => {
 
     const token = generateToken(user._id);
 
+    console.log(`New customer registered: ${user} ☺️`);
+    
     res.status(201).json({
       success: true,
       token,
@@ -74,6 +76,7 @@ exports.login = async (req, res, next) => {
 
     const token = generateToken(user._id);
 
+    console.log(`User logged in: ${user.name}`)
     res.json({
       success: true,
       token,

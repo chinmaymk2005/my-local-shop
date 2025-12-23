@@ -1,0 +1,2 @@
+Now developed a product page: on this page there should be a navbar at top : where
+left most side 

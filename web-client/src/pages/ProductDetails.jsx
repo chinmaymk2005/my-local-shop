@@ -1,3 +1,5 @@
+// This component shows specific product details page
+
 const ProductDetails = () => {
   return (
     <div>
