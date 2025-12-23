@@ -1,5 +1,7 @@
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
+const jwt = require('jsonwebtoken')
+const { jwtSecret } = require('../config/env');
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -87,11 +89,17 @@ exports.createProduct = async (req, res, next) => {
 // @access  Private (Shop Owner)
 exports.updateProduct = async (req, res, next) => {
   try {
-    // TODO: Add authorization check to ensure owner can only update their products
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+
+    // extract token
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    // find product
+    const product = await Product.findById(req.params.id).populate('shop');
 
     if (!product) {
       return res.status(404).json({
@@ -100,10 +108,26 @@ exports.updateProduct = async (req, res, next) => {
       });
     }
 
-    res.json({
+    // authorization check
+    if (product.shop.owner.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to update this product',
+      });
+    }
+
+    // ✅ delete happens ONLY here
+    const updatedProd = await Product.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });    
+
+    return res.json({
       success: true,
-      product,
+      message: 'Product Updated successfully',
+      updatedProd
     });
+
   } catch (error) {
     next(error);
   }
@@ -114,8 +138,17 @@ exports.updateProduct = async (req, res, next) => {
 // @access  Private (Shop Owner)
 exports.deleteProduct = async (req, res, next) => {
   try {
-    // TODO: Add authorization check
-    const product = await Product.findByIdAndDelete(req.params.id);
+
+    // extract token
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    // find product
+    const product = await Product.findById(req.params.id).populate('shop');
 
     if (!product) {
       return res.status(404).json({
@@ -124,10 +157,22 @@ exports.deleteProduct = async (req, res, next) => {
       });
     }
 
-    res.json({
+    // authorization check
+    if (product.shop.owner.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to delete this product',
+      });
+    }
+
+    // ✅ delete happens ONLY here
+    await Product.findByIdAndDelete(req.params.id);
+
+    return res.json({
       success: true,
-      message: 'Product deleted',
+      message: 'Product deleted successfully',
     });
+
   } catch (error) {
     next(error);
   }
