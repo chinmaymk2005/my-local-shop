@@ -134,7 +134,7 @@ exports.updateShop = async (req, res, next) => {
 // @access  Public
 exports.getNearbyShops = async (req, res, next) => {
   try {
-    const { lat, lng, radius = 5 } = req.query; // radius in km, default 5km
+    const { lat, lng, radius = 1.1 } = req.query; // radius in km, default 1.1km
 
     if (!lat || !lng) {
       return res.status(400).json({
