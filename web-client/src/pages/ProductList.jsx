@@ -7,17 +7,52 @@ const ProductList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
   const navigate = useNavigate();
+
+  // Get user's current location
+  const getUserLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by your browser'));
+      } else {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+            setUserLocation(location);
+            resolve(location);
+          },
+          (error) => {
+            reject(error);
+          }
+        );
+      }
+    });
+  };
 
   const findNearByShop = async () => {
     try {
       setLoading(true);
-      const response = await getNearbyShops();
+      let location = userLocation;
+      
+      // Get location if not already available
+      if (!location) {
+        location = await getUserLocation();
+      }
+      
+      const response = await getNearbyShops(location.latitude, location.longitude);
+      console.log('API Response:', response.shops[0]);
       if (response.success) {
         setShops(response.shops || []);
+        
+        
       }
     } catch (error) {
       console.error('Error fetching nearby shops:', error);
+      alert('Please enable location access to find nearby shops');
     } finally {
       setLoading(false);
     }
@@ -150,14 +185,18 @@ const ProductList = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {shops.map((shop) => (
                   <div
-                    key={shop.id}
+                    key={shop._id}
                     className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100"
                   >
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">{shop.name}</h3>
-                    <p className="text-gray-600 mb-3">{shop.address}</p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-500">{shop.products} products</p>
-                      <button className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2">{shop.shopName}</h3>
+                    <p className="text-gray-600 mb-3">
+                      {shop.address?.street && `${shop.address.street}, `}
+                      {shop.address?.city}
+                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-500">📞 {shop.mobile}</p>
+                      <p className="text-sm text-gray-500">📍 {shop.distance?.toFixed(2)} km away</p>
+                      <button className="w-full mt-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium">
                         View Shop
                       </button>
                     </div>

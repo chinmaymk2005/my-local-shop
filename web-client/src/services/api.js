@@ -25,8 +25,10 @@ export const getCurrentUser = async (token) => {
 };
 
 // Shop APIs
-export const getNearbyShops = async () => {
-  const response = await api.get('/shops/nearby');
+export const getNearbyShops = async (latitude, longitude) => {
+  const response = await api.get('/shops/nearby', {
+    params: { latitude, longitude }
+  });
   return response.data;
 };
 

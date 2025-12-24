@@ -10,7 +10,7 @@ exports.registerShop = async (req, res, next) => {
 
     // Check if shop already exists for this user
     const existingShop = await Shop.findOne({ owner: req.user.id });
-    if (existingShop) {
+    if (existingShop && existingShop.shopName === shopName) {
       return res.status(400).json({
         success: false,
         message: 'Shop already registered for this account',
@@ -134,17 +134,22 @@ exports.updateShop = async (req, res, next) => {
 // @access  Public
 exports.getNearbyShops = async (req, res, next) => {
   try {
-    const { lat, lng, radius = 1.1 } = req.query; // radius in km, default 1.1km
+    const { latitude, longitude } = req.query;
+    const radius = 10; // Default radius in km
 
-    if (!lat || !lng) {
+    // console.log(`User location => latitude:${latitude} and longitude:${longitude}`);
+
+
+
+    if (!latitude || !longitude) {
       return res.status(400).json({
         success: false,
         message: 'Please provide latitude and longitude',
       });
     }
 
-    const userLat = parseFloat(lat);
-    const userLng = parseFloat(lng);
+    const userLat = parseFloat(latitude);
+    const userLng = parseFloat(longitude);
     const maxDistance = parseFloat(radius);
 
     // Get all active shops
@@ -161,7 +166,7 @@ exports.getNearbyShops = async (req, res, next) => {
         const R = 6371; // Earth's radius in km
         const dLat = (shop.address.coordinates.lat - userLat) * Math.PI / 180;
         const dLng = (shop.address.coordinates.lng - userLng) * Math.PI / 180;
-        const a = 
+        const a =
           Math.sin(dLat / 2) * Math.sin(dLat / 2) +
           Math.cos(userLat * Math.PI / 180) * Math.cos(shop.address.coordinates.lat * Math.PI / 180) *
           Math.sin(dLng / 2) * Math.sin(dLng / 2);
@@ -176,6 +181,7 @@ exports.getNearbyShops = async (req, res, next) => {
       .filter(shop => shop && shop.distance <= maxDistance)
       .sort((a, b) => a.distance - b.distance); // Sort by distance
 
+    // console.log('Nearby shops:', nearbyShops);
     res.json({
       success: true,
       count: nearbyShops.length,
