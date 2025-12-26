@@ -10,10 +10,10 @@ exports.registerShop = async (req, res, next) => {
 
     // Check if shop already exists for this user
     const existingShop = await Shop.findOne({ owner: req.user.id });
-    if (existingShop && existingShop.shopName === shopName) {
+    if (existingShop && existingShop.mobile === mobile) {
       return res.status(400).json({
         success: false,
-        message: 'Shop already registered for this account',
+        message: 'Shop already registered for this number. Pls use different mobile number!',
       });
     }
 

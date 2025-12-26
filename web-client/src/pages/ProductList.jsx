@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getNearbyShops } from '../services/api';
+import { getNearbyShops, getProducts } from '../services/api';
 
 const ProductList = () => {
   const [activeTab, setActiveTab] = useState('products');
   const [searchQuery, setSearchQuery] = useState('');
   const [shops, setShops] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const navigate = useNavigate();
@@ -44,11 +45,10 @@ const ProductList = () => {
       }
       
       const response = await getNearbyShops(location.latitude, location.longitude);
-      console.log('API Response:', response.shops[0]);
       if (response.success) {
         setShops(response.shops || []);
-        
-        
+        // After getting nearby shops, fetch their products
+        await fetchProductsFromNearbyShops(response.shops || []);
       }
     } catch (error) {
       console.error('Error fetching nearby shops:', error);
@@ -56,22 +56,67 @@ const ProductList = () => {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const fetchProductsFromNearbyShops = async (nearbyShops) => {
+    try {
+      if (nearbyShops.length === 0) {
+        setProducts([]);
+        return;
+      }
+
+      // Fetch products from all nearby shops
+      const productPromises = nearbyShops.map(shop => 
+        getProducts({ shopId: shop._id })
+      );
+      
+      const productResponses = await Promise.all(productPromises);
+      
+      // Combine all products and add shop info
+      const allProducts = [];
+      productResponses.forEach((response, index) => {
+        if (response.success && response.products) {
+          response.products.forEach(product => {
+            allProducts.push({
+              ...product,
+              shopDistance: nearbyShops[index].distance
+            });
+          });
+        }
+      });
+      
+      setProducts(allProducts);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
   };
 
-  // Mock data - replace with API call
-  const products = [
-    { id: 1, name: 'Rice', category: 'Grocery', price: 50, shop: 'Local Store', quantity: 20 },
-    { id: 2, name: 'Sugar', category: 'Grocery', price: 45, shop: 'Quick Mart', quantity: 15 },
-    { id: 3, name: 'Milk', category: 'Dairy', price: 60, shop: 'Fresh Shop', quantity: 30 },
-    { id: 4, name: 'Bread', category: 'Bakery', price: 40, shop: 'Local Store', quantity: 25 },
-    { id: 5, name: 'Eggs', category: 'Dairy', price: 80, shop: 'Quick Mart', quantity: 50 },
-    { id: 6, name: 'Oil', category: 'Grocery', price: 120, shop: 'Fresh Shop', quantity: 10 },
-  ];
+  // Filter products based on search query
+  const filteredProducts = products.filter(product => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      product.name?.toLowerCase().includes(query) ||
+      product.category?.toLowerCase().includes(query) ||
+      product.shop?.shopName?.toLowerCase().includes(query)
+    );
+  });
+
+  // Filter shops based on search query
+  const filteredShops = shops.filter(shop => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      shop.shopName?.toLowerCase().includes(query) ||
+      shop.address?.street?.toLowerCase().includes(query) ||
+      shop.address?.city?.toLowerCase().includes(query)
+    );
+  });
 
   // Load shops on component mount
   useEffect(() => {
@@ -125,9 +170,6 @@ const ProductList = () => {
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  if (e.target.value.length > 0) {
-                    findNearByShop();
-                  }
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
@@ -136,7 +178,7 @@ const ProductList = () => {
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="ml-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              className="ml-4 px-5 text-lg py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
             >
               Logout
             </button>
@@ -147,11 +189,18 @@ const ProductList = () => {
         <main className="flex-1 overflow-y-auto p-8">
           {activeTab === 'products' ? (
             <div>
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6">All Products</h2>
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6">Products from Nearby Shops</h2>
+              {loading ? (
+                <p className="text-gray-500">Loading products...</p>
+              ) : filteredProducts.length === 0 ? (
+                <p className="text-gray-500">
+                  {searchQuery ? `No products found matching "${searchQuery}"` : 'No products found from nearby shops'}
+                </p>
+              ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <div
-                    key={product.id}
+                    key={product._id}
                     className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100"
                   >
                     <div className="flex flex-col h-full">
@@ -163,27 +212,31 @@ const ProductList = () => {
                         <div className="space-y-1 mb-4">
                           <p className="text-2xl font-bold text-indigo-600">₹{product.price}</p>
                           <p className="text-sm text-gray-600">Stock: {product.quantity}</p>
-                          <p className="text-sm text-gray-500">{product.shop}</p>
+                          <p className="text-sm text-gray-500">{product.shop?.shopName}</p>
+                          <p className="text-xs text-gray-400">📍 {product.shopDistance?.toFixed(2)} km away</p>
                         </div>
                       </div>
                       <button className="w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                        View
+                        View Details
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
+              )}
             </div>
           ) : (
             <div>
               <h2 className="text-2xl font-semibold text-gray-800 mb-6">Nearby Shops</h2>
               {loading ? (
                 <p className="text-gray-500">Loading shops...</p>
-              ) : shops.length === 0 ? (
-                <p className="text-gray-500">No shops found</p>
+              ) : filteredShops.length === 0 ? (
+                <p className="text-gray-500">
+                  {searchQuery ? `No shops found matching "${searchQuery}"` : 'No shops found'}
+                </p>
               ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {shops.map((shop) => (
+                {filteredShops.map((shop) => (
                   <div
                     key={shop._id}
                     className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100"
