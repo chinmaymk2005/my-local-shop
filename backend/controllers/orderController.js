@@ -12,7 +12,7 @@ exports.createOrder = async (req, res, next) => {
 
     // Get product from params
     const product = await Product.findById(req.params.id);
-
+    // console.log('Product found:', product);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }

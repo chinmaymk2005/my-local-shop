@@ -32,6 +32,13 @@ export const getNearbyShops = async (latitude, longitude) => {
   return response.data;
 };
 
+export const getShopById = async (id, token) => {
+  const response = await api.get(`/shops/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+}
+
 // Product APIs
 export const getProducts = async (filters = {}) => {
   const response = await api.get('/products', { params: filters });
@@ -44,8 +51,8 @@ export const getProductById = async (id) => {
 };
 
 // Order APIs
-export const createOrder = async (orderData, token) => {
-  const response = await api.post('/orders/:id', orderData, {
+export const createOrder = async (orderData, token, id) => {
+  const response = await api.post(`/orders/${id}`, orderData, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;

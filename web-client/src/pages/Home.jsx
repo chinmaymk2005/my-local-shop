@@ -11,7 +11,10 @@ const Home = () => {
       <p>Welcome! Browse products from local shops near you.</p>
       {/* TODO: Add featured products, search bar, shop list */}
 
-      <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={() => navigate('/products')}>Explore Products</button>
+      <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => navigate('/dashboard')}>
+        Explore Products
+      </button>
     </div>
   );
 };

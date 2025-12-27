@@ -192,3 +192,16 @@ exports.getNearbyShops = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getShopById = async (req, res, next) => {
+  const shopid = req.params.id;
+
+  try {
+    const shop = await Shop.findById(shopid)
+    if(!shop) return res.status(404).json({ success: false, message: 'Shop not found' });    
+    return res.status(200).json({ success: true, shop });    
+  } catch (error) {
+    console.error(error);
+    next(error)
+  }
+}

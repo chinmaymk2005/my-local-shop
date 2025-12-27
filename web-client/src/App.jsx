@@ -4,7 +4,7 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Home from './pages/Home';
-import ProductList from './pages/ProductList';
+import ProductList from './pages/Product_ShopList';
 import ProductDetails from './pages/ProductDetails';
 import Orders from './pages/Orders';
 
@@ -24,7 +24,7 @@ function App() {
             }
           />
           <Route
-            path="/products"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <ProductList />
